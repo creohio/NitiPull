@@ -109,7 +109,6 @@
     <button class="tab active" data-tab="board">Board</button>
     <button class="tab" data-tab="charts">Charts</button>
     <button class="tab" data-tab="issues">Issues</button>
-    <button id="resetBtn" class="tab">Reset Demo Data</button>
 
     <div class="selbar">
       <button id="selectModeBtn" class="toggle">Select Mode</button>
@@ -286,8 +285,6 @@
       if(dst==='issues') updateIssuesPanel();
     }}));
 
-  document.getElementById('resetBtn').onclick=()=>{ state=seed(); selection.clear(); updateSelectionUI(); render(); saveSoon(); };
-
   const selectBtn=document.getElementById('selectModeBtn'), selCount=document.getElementById('selCount'), clearSelBtn=document.getElementById('clearSelBtn');
   selectBtn.onclick=()=>{ selectMode=!selectMode; updateSelectionUI(); applySelectionDecor(); };
   clearSelBtn.onclick=()=>{ selection.clear(); updateSelectionUI(); applySelectionDecor(); };
@@ -305,6 +302,7 @@
     upsertCardToSection(`compacts-H${n}`,`Card ID ${n}`,'compacts','empty'); 
     addOneInput.value=''; 
     render(); 
+    saveSoon();
   };
 
   batchBtn.onclick=()=>{ 
@@ -324,6 +322,7 @@
       upsertCardToSection(`compacts-H${n}`,`Card ID ${n}`,'compacts', ready?'ready':'empty');
     }
     render();
+    saveSoon();
   };
 
   const wrap=document.getElementById('locations');
@@ -390,6 +389,7 @@
   function deleteCard(id){ Object.keys(state.sections).forEach(k=>{ state.sections[k]=(state.sections[k]||[]).filter(x=>x!==id); }); delete state.cards[id]; selection.delete(id); saveSoon(); render(); }
 
   function render(){
+    const wrap=document.getElementById('locations');
     if(!wrap.dataset.built){ wrap.innerHTML=''; CONFIG.forEach(loc=>wrap.appendChild(buildLocation(loc))); wrap.dataset.built='1'; }
     CONFIG.forEach(loc=>{
       let locTotal=0;
