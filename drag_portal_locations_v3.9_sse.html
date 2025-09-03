@@ -1,1 +1,554 @@
-<!doctype html><title>Missing</title><h1>HTML not found</h1>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Production Board — Grid Tiles (SSE)</title>
+  <style>
+    :root{
+      --panel:#ffffff; --muted:#64748b; --text:#0f172a;
+      --ring:#94a3b8; --green:#22c55e; --red:#ef4444; --gray:#cbd5e1; --card:#f8fafc;
+      --ink:#0f172a; --ink2:#334155; --ink3:#64748b; --blue:#2563eb;
+    }
+    *{box-sizing:border-box}
+    body{ margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:#f1f5f9; color:var(--text); }
+    header{ padding:16px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+    .title{ font-size:18px; font-weight:700; display:flex; gap:10px; align-items:center; }
+    .status{ display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid #e2e8f0; background:#fff }
+    .dot{ width:8px; height:8px; border-radius:50% }
+    .dot.ok{ background:#10b981 } .dot.warn{ background:#f59e0b } .dot.bad{ background:#ef4444 }
+    .muted{ color:#0f172a; font-size:12px; background:#e0f2fe; border:1px solid #bae6fd; padding:6px 8px; border-radius:8px }
+    .wrap{ padding:0 24px 24px; }
+    .tabs{ display:flex; gap:8px; margin:0 24px 12px; align-items:center; flex-wrap:wrap }
+    .tab{ padding:8px 14px; border-radius:10px; border:1px solid #e2e8f0; background:#fff; cursor:pointer; font-size:14px }
+    .tab.active{ background:#0f172a; color:#fff; border-color:#0f172a }
+    .panel{ display:none } .panel.active{ display:block }
+    .selbar{ display:flex; gap:8px; align-items:center; margin-left:auto }
+    .toggle{ padding:8px 12px; border-radius:10px; border:1px solid #e2e8f0; background:#fff; cursor:pointer; font-size:13px }
+    .toggle.on{ background:#1d4ed8; color:#fff; border-color:#1d4ed8 }
+    .badge-sel{ background:#111827; color:#fff; border-radius:999px; padding:3px 8px; font-size:12px }
+    .btn{ background:#0f172a; color:#fff; border:none; border-radius:10px; padding:6px 10px; font-size:12px; cursor:pointer }
+    .btn.secondary{ background:#e2e8f0; color:#0f172a }
+    .btn.danger{ background:#ef4444; color:#fff }
+    .btn[disabled]{ opacity:.5; cursor:not-allowed }
+
+    .locations{ display:grid; gap:16px; grid-template-columns: 1fr; }
+    @media (min-width: 1100px){ .locations{ grid-template-columns: repeat(3,1fr); } }
+    .location{ background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+    .loc-header{ display:flex; justify-content:space-between; align-items:center; }
+    .loc-title{ font-weight:700; font-size:16px }
+    .badge{ background:#0f172a; color:#fff; border-radius:999px; padding:2px 8px; font-size:12px }
+    .sections{ display:flex; flex-direction:column; gap:12px; }
+    .section{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .section.drop-target{ outline:2px dashed var(--ring); outline-offset:2px; }
+    .section-header{ display:flex; gap:8px; align-items:center; justify-content:space-between; }
+    .section-title{ font-weight:600; display:flex; align-items:center; gap:8px }
+    .origin-tag{ font-size:10px; background:#cffafe; color:#075985; border:1px solid #a5f3fc; padding:2px 6px; border-radius:999px }
+    .section-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .row{ display:flex; gap:8px; flex-wrap:wrap; }
+    .add-row input, .batch-row input{ border:1px solid #cbd5e1; border-radius:10px; padding:6px 8px; font-size:14px }
+    .add-row input{ flex:1; }
+
+    /* GRID LIST */
+    .list{ display:grid; gap:6px; grid-template-columns: repeat(auto-fill, minmax(22px, 1fr)); min-height:28px }
+    .tile{
+      width:22px; height:22px; border-radius:4px; border:1px solid #475569;
+      background:#f8fafc; cursor:grab; user-select:none; position:relative;
+      display:flex; align-items:center; justify-content:center; overflow:hidden;
+      font-weight:700; line-height:1;
+      font-size:10px;
+    }
+    .tile.ready{ background:#22c55e; color:#fff; text-shadow:0 1px 0 rgba(0,0,0,.2) }
+    .tile.issue{ background:#ef4444; color:#fff; text-shadow:0 1px 0 rgba(0,0,0,.2) }
+    .tile.empty{ background:#f8fafc; color:#0f172a }
+    .tile.dragging{ opacity:.6 } .tile:active{ cursor:grabbing }
+    .tile.selected{ outline:2px solid var(--blue); outline-offset:-1px; box-shadow:0 0 0 2px rgba(37,99,235,.25) inset }
+    .tile .x{ display:none }
+    .tile:hover .x{ display:block; position:absolute; right:-6px; top:-6px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; font-size:10px; padding:0 3px; cursor:pointer }
+
+    .small{ font-size:12px; color:#475569 }
+    label.checkbox{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#334155 }
+    input[type="number"]{ width:90px }
+
+    /* Charts */
+    .charts{ display:flex; flex-direction:column; gap:16px }
+    .charts-row{ display:flex; gap:16px; align-items:flex-start; }
+    .charts-row.center{ justify-content:center; }
+    .charts-row.line{ justify-content:flex-start; flex-wrap:nowrap; overflow-x:auto; padding-bottom:8px }
+    .chart-card{ background:#fff; border:1px solid #e5e7eb; border-radius:16px; padding:16px; }
+    .chart-title{ font-weight:600; margin-bottom:8px }
+    .chart-wrap{ display:flex; gap:12px; align-items:center; }
+    canvas{ width:280px; height:280px; background:#fff; border-radius:12px; }
+    .legend{ display:flex; flex-direction:column; gap:6px; min-width:160px }
+    .legend-item{ display:flex; align-items:center; gap:8px; font-size:13px; color:#334155 }
+    .legend-swatch{ width:12px; height:12px; border-radius:3px; display:inline-block }
+    footer{ text-align:center; padding:16px; color:#64748b; font-size:12px }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">
+      Production Flow Board — Grid Tiles
+      <span class="status" id="netStatus"><span class="dot bad" id="dot"></span><span id="statusText">Offline</span></span>
+    </div>
+    <div class="muted">Realtime via <strong>SSE</strong>. Create only in <strong>AMD → Compacts</strong>. Multi-select to bulk-move.</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="board">Board</button>
+    <button class="tab" data-tab="charts">Charts</button>
+    <button id="resetBtn" class="tab">Reset Demo Data</button>
+
+    <div class="selbar">
+      <button id="selectModeBtn" class="toggle">Select Mode</button>
+      <span class="badge-sel" id="selCount">Selected: 0</span>
+      <button id="clearSelBtn" class="btn secondary" disabled>Clear Selection</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div id="panel-board" class="panel active">
+      <div id="locations" class="locations"></div>
+    </div>
+
+    <div id="panel-charts" class="panel">
+      <div class="charts">
+        <div class="charts-row center">
+          <div class="chart-card" id="wrap-locations">
+            <div class="chart-title">Totals by Location</div>
+            <div class="chart-wrap">
+              <canvas id="chart-locations" width="280" height="280"></canvas>
+              <div class="legend" id="legend-locations"></div>
+            </div>
+          </div>
+        </div>
+        <div class="charts-row line">
+          <div class="chart-card" id="wrap-amd">
+            <div class="chart-title">AMD — Sections</div>
+            <div class="chart-wrap">
+              <canvas id="chart-amd" width="280" height="280"></canvas>
+              <div class="legend" id="legend-amd"></div>
+            </div>
+          </div>
+          <div class="chart-card" id="wrap-gs">
+            <div class="chart-title">G&amp;S — Sections</div>
+            <div class="chart-wrap">
+              <canvas id="chart-gs" width="280" height="280"></canvas>
+              <div class="legend" id="legend-gs"></div>
+            </div>
+          </div>
+          <div class="chart-card" id="wrap-ferg">
+            <div class="chart-title">Ferguson — Sections</div>
+            <div class="chart-wrap">
+              <canvas id="chart-ferg" width="280" height="280"></canvas>
+              <div class="legend" id="legend-ferg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>© G&amp;S Bar &amp; Wire — Modern Drag Portal</footer>
+
+<script>
+(function(){
+  // ---------- SSE client ----------
+  const BASE = location.origin;
+  let applyingRemote = false;
+  let saveTimer = null;
+
+  function setStatus(text, level){
+    document.getElementById('statusText').textContent = text;
+    const dot = document.getElementById('dot');
+    dot.classList.remove('ok','warn','bad');
+    dot.classList.add(level||'bad');
+  }
+
+  async function saveRemote(){
+    if(applyingRemote) return;
+    try{
+      await fetch(BASE+'/patch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ state }) });
+    }catch(e){ console.warn('save failed', e); }
+  }
+  function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveRemote, 120); }
+
+  function connectSSE(){
+    const es = new EventSource(BASE+'/events');
+    setStatus('Connecting…','warn');
+    es.onmessage = (ev)=>{
+      try{
+        const msg = JSON.parse(ev.data || '{}');
+        if(msg && (msg.type === 'hello' || msg.type === 'patch')){
+          if(msg.state){
+            applyingRemote = true;
+            state = msg.state;
+            render();
+            applyingRemote = false;
+          }
+          setStatus('Connected','ok');
+        }
+      }catch(e){}
+    };
+    es.onerror = ()=> setStatus('Offline','bad');
+  }
+  connectSSE();
+
+  // ---------- App state ----------
+  const ORIGIN = { loc: 'amd', sec: 'compacts' };
+  const CONFIG = [
+    { id:'amd', title:'AMD', sections:[
+      { id:'compacts', title:'Compacts' },
+      { id:'melt', title:'Melt' },
+      { id:'ingotConv', title:'Ingot Conversion' },
+      { id:'billet', title:'Billet' }
+    ]},
+    { id:'gs', title:'G&S', sections:[
+      { id:'coilConv', title:'Coil Conversion' },
+      { id:'blast', title:'Shot Blast/Test' },
+      { id:'p250', title:'.250"' },
+      { id:'p136hot', title:'.136" Hot Drawn' }
+    ]},
+    { id:'ferg', title:'Ferguson', sections:[
+      { id:'ferg136_085', title:'.136" - .085"' }
+    ]},
+  ];
+
+  function seed(){
+    const cards = {}; for(let i=1;i<=16;i++){
+      const sec = i<=4 ? 'compacts' : i<=6 ? 'melt' : i<=9 ? 'ingotConv' : i===10 ? 'billet' : i===11 ? 'coilConv' : i===12 ? 'blast' : i===13 ? 'p250' : i===14 ? 'p136hot' : 'ferg136_085';
+      const num = (i<=4?i : i<=6? i-4 : i<=9? i-6 : i===10? 1 : i===11? 1 : i===12?1 : i===13?1 : i===14?1 : i-14);
+      const id = sec + '-H' + num;
+      cards[id] = { id, title:'Heat '+num, status:(i%3===0?'issue':'ready') };
+    }
+    const sections = {}; CONFIG.forEach(loc => loc.sections.forEach(s => sections[s.id]=[]));
+    sections['compacts']=['compacts-H1','compacts-H2','compacts-H3','compacts-H4'];
+    sections['melt']=['melt-H1','melt-H2'];
+    sections['ingotConv']=['ingotConv-H1','ingotConv-H2','ingotConv-H3'];
+    sections['billet']=['billet-H1'];
+    sections['coilConv']=['coilConv-H1'];
+    sections['blast']=['blast-H1'];
+    sections['p250']=['p250-H1'];
+    sections['p136hot']=['p136hot-H1'];
+    sections['ferg136_085']=['ferg136_085-H1','ferg136_085-H2'];
+    return { cards, sections };
+  }
+  let state = seed();
+
+  // selection (not persisted)
+  let selectMode = false;
+  const selection = new Set();
+  function toggleSelectMode(){ selectMode = !selectMode; updateSelectionUI(); render(); }
+  function clearSelection(){ selection.clear(); updateSelectionUI(); render(); }
+  function toggleSelect(id){ if(selection.has(id)) selection.delete(id); else selection.add(id); updateSelectionUI(); render(); }
+  function isSelected(id){ return selection.has(id); }
+
+  // tabs
+  const tabs = document.querySelectorAll('.tab[data-tab]');
+  const panels = { board: document.getElementById('panel-board'), charts: document.getElementById('panel-charts') };
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
+    const dst = t.dataset.tab;
+    if(dst){
+      Object.values(panels).forEach(p => p.classList.remove('active'));
+      panels[dst].classList.add('active');
+      if(dst === 'charts') updateCharts();
+    }
+  }));
+  document.getElementById('resetBtn').addEventListener('click', ()=>{ state = seed(); clearSelection(); saveSoon(); if(panels.charts.classList.contains('active')) updateCharts(); });
+
+  const selectBtn = document.getElementById('selectModeBtn');
+  const selCount = document.getElementById('selCount');
+  const clearSelBtn = document.getElementById('clearSelBtn');
+  selectBtn.addEventListener('click', toggleSelectMode);
+  clearSelBtn.addEventListener('click', clearSelection);
+  function updateSelectionUI(){
+    selCount.textContent = 'Selected: ' + selection.size;
+    clearSelBtn.disabled = selection.size === 0;
+    selectBtn.classList.toggle('on', selectMode);
+  }
+
+  const wrap = document.getElementById('locations');
+
+  function buildLocation(loc){
+    const el = document.createElement('div'); el.className='location'; el.dataset.locId = loc.id;
+    const header = document.createElement('div'); header.className='loc-header';
+    const title = document.createElement('div'); title.className='loc-title'; title.textContent = loc.title;
+    const count = document.createElement('div'); count.className='badge'; count.dataset.locCount = loc.id;
+    header.appendChild(title); header.appendChild(count);
+    const sections = document.createElement('div'); sections.className='sections';
+    loc.sections.forEach(s => sections.appendChild(buildSection(loc, s)));
+    el.appendChild(header); el.appendChild(sections);
+    return el;
+  }
+
+  function buildSection(loc, sec){
+    const el = document.createElement('div'); el.className='section'; el.dataset.sectionId = sec.id; el.dataset.locId = loc.id;
+
+    const enableDrop = (targetEl) => {
+      targetEl.addEventListener('dragover', (e)=>{ e.preventDefault(); el.classList.add('drop-target') });
+      targetEl.addEventListener('dragleave', ()=> el.classList.remove('drop-target'));
+      targetEl.addEventListener('drop', (e)=>{
+        e.preventDefault(); el.classList.remove('drop-target');
+        const firstId = e.dataTransfer.getData('text/plain');
+        const group = (window.__dragGroup && window.__dragGroup.length) ? Array.from(new Set(window.__dragGroup)) : (firstId ? [firstId] : []);
+        if(group.length) moveGroup(group, sec.id);
+        window.__dragGroup = null;
+      });
+    };
+
+    const header = document.createElement('div'); header.className='section-header';
+    const title = document.createElement('div'); title.className='section-title'; title.textContent = sec.title;
+    const actions = document.createElement('div'); actions.className='section-actions';
+    const clearBtn = document.createElement('button'); clearBtn.className='btn danger'; clearBtn.textContent='Clear Section';
+    clearBtn.onclick = () => { clearSection(sec.id) };
+    const makeAllReady = document.createElement('button'); makeAllReady.className='btn secondary'; makeAllReady.textContent='Make All Ready';
+    makeAllReady.onclick = () => { setSectionStatus(sec.id, 'ready'); };
+    const count = document.createElement('div'); count.className='badge'; count.dataset.secCount = sec.id;
+
+    const isOrigin = (loc.id === ORIGIN.loc && sec.id === ORIGIN.sec);
+    if(isOrigin){
+      const tag = document.createElement('span'); tag.className='origin-tag'; tag.textContent='Origin';
+      title.appendChild(tag);
+    }
+    header.append(title); actions.append(clearBtn, makeAllReady, count); header.append(actions);
+
+    if(isOrigin){
+      const addRow = document.createElement('div'); addRow.className='row add-row';
+      const input = document.createElement('input'); input.placeholder='Add Heat number (e.g., 101)';
+      const addBtn = document.createElement('button'); addBtn.className='btn'; addBtn.textContent = 'Add';
+      addBtn.onclick = () => {
+        const num = parseInt((input.value||'').trim(),10); if(Number.isNaN(num)){ alert('Enter a number'); return }
+        const id = `${sec.id}-H${num}`; const title = `Heat ${num}`;
+        upsertCardToSection(id, title, sec.id, 'empty'); input.value=''; render();
+      };
+      addRow.append(input, addBtn);
+
+      const batchRow = document.createElement('div'); batchRow.className='row batch-row';
+      const label = document.createElement('div'); label.className='small'; label.textContent='Batch add Heat 1-100 (origin section only):';
+      const start = document.createElement('input'); start.type='number'; start.placeholder='Start'; start.value='1';
+      const end = document.createElement('input'); end.type='number'; end.placeholder='End'; end.value='20';
+      const readyCheck = document.createElement('label'); readyCheck.className='checkbox';
+      const chk = document.createElement('input'); chk.type='checkbox'; const chkSpan = document.createElement('span'); chkSpan.textContent='Mark Ready';
+      readyCheck.append(chk, chkSpan);
+      const addRange = document.createElement('button'); addRange.className='btn'; addRange.textContent='Add Range';
+      addRange.onclick = () => {
+        const s = parseInt(start.value,10), e = parseInt(end.value,10);
+        if (isNaN(s) || isNaN(e) || e < s || s < 0 || e - s > 5000) { alert('Enter a valid range (max 5000 cards).'); return }
+        for (let n = s; n <= e; n++){
+          const id = `${sec.id}-H${n}`;
+          const title = `Heat ${n}`;
+          const status = chk.checked ? 'ready' : 'empty';
+          upsertCardToSection(id, title, sec.id, status);
+        }
+        render();
+      };
+      batchRow.append(label, start, end, readyCheck, addRange);
+      el.append(header, addRow, batchRow);
+    } else {
+      el.append(header);
+    }
+
+    const list = document.createElement('div'); list.className='list'; list.dataset.listFor = sec.id;
+    enableDrop(el); enableDrop(list);
+    el.append(list);
+    return el;
+  }
+
+  function buildTile(card){
+    const el = document.createElement('div'); el.className='tile ' + (card.status||'empty'); el.draggable=true; el.id=card.id; el.title=card.title;
+    if(isSelected(card.id)) el.classList.add('selected');
+    el.addEventListener('dragstart', (e)=>{
+      el.classList.add('dragging');
+      const group = isSelected(card.id) ? Array.from(selection) : [card.id];
+      window.__dragGroup = group;
+      e.dataTransfer.setData('text/plain', card.id);
+      e.dataTransfer.effectAllowed='move';
+    });
+    el.addEventListener('dragend', ()=> el.classList.remove('dragging'));
+    el.addEventListener('click', (e)=>{
+      if(selectMode || e.ctrlKey || e.metaKey){
+        toggleSelect(card.id);
+      } else {
+        const order = ['ready','issue','empty'];
+        const cur = state.cards[card.id].status || 'empty';
+        state.cards[card.id].status = order[(order.indexOf(cur)+1)%order.length];
+        saveSoon(); render();
+      }
+    });
+    const num = extractNum(card);
+    const numEl = document.createElement('span'); numEl.textContent = num; numEl.className='num';
+    el.appendChild(numEl);
+    const x = document.createElement('div'); x.textContent='×'; x.className='x';
+    x.onclick = (e)=>{ e.stopPropagation(); selection.delete(card.id); deleteCard(card.id) };
+    el.appendChild(x);
+    return el;
+  }
+
+  function extractNum(card){
+    if(card && card.title){
+      const m = card.title.match(/(\d+)/); if(m) return m[1];
+    }
+    if(card && card.id){
+      const m = card.id.match(/H(\d+)/); if(m) return m[1];
+    }
+    return '';
+  }
+
+  function upsertCardToSection(id, title, sectionId, status){
+    if(!state.cards[id]){ state.cards[id] = { id, title, status } }
+    else { state.cards[id].title = title; if(status) state.cards[id].status = status }
+    Object.keys(state.sections).forEach(k => { const arr = state.sections[k]; const i = arr.indexOf(id); if(i>=0) arr.splice(i,1) });
+    (state.sections[sectionId] ||= []).push(id);
+    saveSoon();
+  }
+
+  function setSectionStatus(sectionId, status){
+    const ids = state.sections[sectionId] || []; ids.forEach(id => { if(state.cards[id]) state.cards[id].status = status });
+    saveSoon(); render();
+  }
+
+  function clearSection(sectionId){
+    const ids = state.sections[sectionId] || [];
+    if(ids.length === 0) return;
+    if(!confirm('Delete all cards in this section?')) return;
+    ids.forEach(id => { delete state.cards[id]; selection.delete(id) });
+    state.sections[sectionId] = [];
+    saveSoon(); render();
+  }
+
+  function moveGroup(ids, destSectionId){
+    Object.keys(state.sections).forEach(k => {
+      state.sections[k] = (state.sections[k]||[]).filter(id => !ids.includes(id));
+    });
+    state.sections[destSectionId] = (state.sections[destSectionId] || []).concat(ids);
+    selection.clear();
+    saveSoon(); render();
+  }
+  function moveCard(cardId, destSectionId){ moveGroup([cardId], destSectionId); }
+  function deleteCard(cardId){
+    Object.keys(state.sections).forEach(k => { state.sections[k] = state.sections[k].filter(id => id !== cardId) });
+    selection.delete(cardId);
+    delete state.cards[cardId]; saveSoon(); render();
+  }
+
+  function render(){
+    if(!wrap.dataset.built){ wrap.innerHTML=''; CONFIG.forEach(loc => wrap.appendChild(buildLocation(loc))); wrap.dataset.built='1' }
+    CONFIG.forEach(loc => {
+      let locTotal = 0;
+      loc.sections.forEach(sec => {
+        const list = wrap.querySelector(`[data-list-for="${sec.id}"]`);
+        if(list){ list.innerHTML=''; (state.sections[sec.id]||[]).forEach(id => { const card = state.cards[id]; if(card) list.appendChild(buildTile(card)) }) }
+        const c = wrap.querySelector(`[data-secCount="${sec.id}"]`); const count = (state.sections[sec.id]||[]).length; if(c) c.textContent = String(count);
+        locTotal += count;
+      });
+      const lc = wrap.querySelector(`[data-locCount="${loc.id}"]`); if(lc) lc.textContent = String(locTotal);
+    });
+    updateSelectionUI();
+    if(document.getElementById('panel-charts').classList.contains('active')) updateCharts();
+  }
+
+  // Charts
+  const paletteSections = ['#0ea5e9','#a78bfa','#ef4444','#22c55e','#f59e0b','#14b8a6','#8b5cf6','#f43f5e','#10b981','#eab308'];
+  const paletteLocations = { AMD:'#2563eb', GS:'#10b981', FERG:'#f59e0b' };
+
+  function updateCharts(){
+    const locData = CONFIG.map(loc => ({
+      key: loc.id,
+      title: loc.title,
+      total: loc.sections.reduce((sum, s) => sum + (state.sections[s.id]?.length || 0), 0)
+    }));
+    drawPie('chart-locations',
+      locData.map(x => x.title),
+      locData.map(x => x.total),
+      [paletteLocations.AMD, paletteLocations.GS, paletteLocations.FERG],
+      'legend-locations'
+    );
+
+    const amd = CONFIG[0];
+    drawPie('chart-amd',
+      amd.sections.map(s => s.title),
+      amd.sections.map(s => state.sections[s.id]?.length || 0),
+      paletteSections,
+      'legend-amd'
+    );
+
+    const gs = CONFIG[1];
+    drawPie('chart-gs',
+      gs.sections.map(s => s.title),
+      gs.sections.map(s => state.sections[s.id]?.length || 0),
+      paletteSections,
+      'legend-gs'
+    );
+
+    const ferg = CONFIG[2];
+    drawPie('chart-ferg',
+      ferg.sections.map(s => s.title),
+      ferg.sections.map(s => state.sections[s.id]?.length || 0),
+      paletteSections,
+      'legend-ferg'
+    );
+  }
+
+  function drawPie(canvasId, labels, values, colors, legendId){
+    const canvas = document.getElementById(canvasId);
+    const legend = document.getElementById(legendId);
+    if(!canvas || !legend) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const total = values.reduce((a,b)=>a+b,0);
+    const cx = canvas.width/2, cy = canvas.height/2;
+    const radius = Math.min(canvas.width, canvas.height)/2 - 10;
+    const inner = radius * 0.55;
+
+    if(total === 0){
+      ctx.fillStyle = '#e5e7eb';
+      ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(cx, cy, inner, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#64748b'; ctx.font='14px ui-sans-serif';
+      const msg = 'No data';
+      ctx.fillText(msg, cx - ctx.measureText(msg).width/2, cy + 5);
+      legend.innerHTML = '';
+      return;
+    }
+
+    let start = -Math.PI/2;
+    values.forEach((v, i) => {
+      const frac = v/total, angle = frac * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, radius, start, start + angle);
+      ctx.closePath();
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.fill();
+      start += angle;
+    });
+
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath(); ctx.arc(cx, cy, inner, 0, Math.PI*2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 18px ui-sans-serif';
+    ctx.fillText(String(total), cx - ctx.measureText(String(total)).width/2, cy + 6);
+
+    legend.innerHTML = '';
+    labels.forEach((label, i) => {
+      const row = document.createElement('div'); row.className='legend-item';
+      const sw = document.createElement('span'); sw.className='legend-swatch'; sw.style.background = colors[i % colors.length];
+      const txt = document.createElement('span');
+      const v = values[i];
+      const pct = ((v/total)*100).toFixed(1);
+      txt.textContent = `${label}: ${v} (${pct}%)`;
+      row.append(sw, txt); legend.appendChild(row);
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
