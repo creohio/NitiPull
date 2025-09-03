@@ -5,14 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Production Board — Grid Tiles (SSE)</title>
 <style>
-  :root{
-    --panel:#ffffff; --muted:#64748b; --text:#0f172a;
-    --ring:#94a3b8; --green:#22c55e; --red:#ef4444; --gray:#cbd5e1; --card:#f8fafc;
-    --ink:#0f172a; --blue:#2563eb;
-  }
+  :root{ --panel:#ffffff; --muted:#64748b; --text:#0f172a; --ring:#94a3b8; --green:#22c55e; --red:#ef4444; --gray:#cbd5e1; --card:#f8fafc; --ink:#0f172a; --blue:#2563eb; }
   *{box-sizing:border-box}
-  body{ margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-    background:#f1f5f9; color:var(--text); }
+  body{ margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#f1f5f9; color:var(--text); }
   header{ padding:16px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
   .title{ font-size:18px; font-weight:700; display:flex; gap:10px; align-items:center; }
   .status{ display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid #e2e8f0; background:#fff }
@@ -52,23 +47,14 @@
 
   .sections{ display:flex; flex-direction:column; gap:12px; }
   .section{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
-  .section-header{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:6px 8px; background:#f8fafc; border:1px solid #e5e7eb;
-    border-radius:8px; color:#0f172a; font-weight:600;
-  }
+  .section-header{ display:flex; align-items:center; justify-content:space-between; padding:6px 8px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; color:#0f172a; font-weight:600; }
   .section-title{ display:flex; align-items:center; gap:8px; }
   .origin-tag{ font-size:10px; background:#cffafe; color:#075985; border:1px solid #a5f3fc; padding:2px 6px; border-radius:999px }
   .section-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 
   /* GRID LIST */
   .list{ display:grid; gap:6px; grid-template-columns: repeat(auto-fill, minmax(22px, 1fr)); min-height:28px }
-  .tile{
-    width:22px; height:22px; border-radius:4px; border:1px solid #475569;
-    background:#f8fafc; cursor:grab; user-select:none; position:relative;
-    display:flex; align-items:center; justify-content:center; overflow:hidden;
-    font-weight:700; line-height:1; font-size:10px;
-  }
+  .tile{ width:22px; height:22px; border-radius:4px; border:1px solid #475569; background:#f8fafc; cursor:grab; user-select:none; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; font-weight:700; line-height:1; font-size:10px; }
   .tile.ready{ background:#22c55e; color:#fff; text-shadow:0 1px 0 rgba(0,0,0,.2) }
   .tile.issue{ background:#ef4444; color:#fff; text-shadow:0 1px 0 rgba(0,0,0,.2) }
   .tile.empty{ background:#f8fafc; color:#0f172a }
@@ -265,6 +251,31 @@
   }
   let state = seed();
 
+  /* ---------- Helpers for global Card ID uniqueness ---------- */
+  function getCardNumber(card){
+    if(!card) return null;
+    let m = card.title && card.title.match(/(\d+)/);
+    if(m) return parseInt(m[1],10);
+    m = card.id && card.id.match(/H(\d+)/);
+    if(m) return parseInt(m[1],10);
+    return null;
+  }
+  function getUsedNumbers(){
+    const set = new Set();
+    Object.values(state.cards || {}).forEach(c => {
+      const n = getCardNumber(c);
+      if(Number.isInteger(n)) set.add(n);
+    });
+    return set;
+  }
+  function existsNumber(n){ return getUsedNumbers().has(n); }
+  function nextAvailableNumber(start=1){
+    const used = getUsedNumbers();
+    let n = Math.max(1, start);
+    while(used.has(n)) n++;
+    return n;
+  }
+
   /* ---------- Selection / Tabs ---------- */
   let selectMode=false; const selection=new Set();
   const tabs=document.querySelectorAll('.tab[data-tab]');
@@ -282,12 +293,36 @@
   clearSelBtn.onclick=()=>{ selection.clear(); updateSelectionUI(); applySelectionDecor(); };
   function updateSelectionUI(){ selCount.textContent='Selected: '+selection.size; clearSelBtn.disabled=selection.size===0; selectBtn.classList.toggle('on',selectMode); }
 
-  // Global Add → AMD/Compacts
-  addOneBtn.onclick=()=>{ const n=parseInt((addOneInput.value||'').trim(),10); if(isNaN(n)) return alert('Enter a number');
-    upsertCardToSection(`compacts-H${n}`,`Card ID ${n}`,'compacts','empty'); addOneInput.value=''; render(); };
-  batchBtn.onclick=()=>{ const s=parseInt(batchStart.value,10), e=parseInt(batchEnd.value,10), ready=batchReady.checked;
+  // ---------- Global Add → AMD/Compacts with global-unique Card IDs ----------
+  addOneBtn.onclick=()=>{ 
+    const n=parseInt((addOneInput.value||'').trim(),10); 
+    if(isNaN(n)) return alert('Enter a Card ID number.');
+    if(existsNumber(n)){
+      const next = nextAvailableNumber(n);
+      alert(`Card ID ${n} already exists somewhere on the board.\nNext available Card ID is ${next}.`);
+      return;
+    }
+    upsertCardToSection(`compacts-H${n}`,`Card ID ${n}`,'compacts','empty'); 
+    addOneInput.value=''; 
+    render(); 
+  };
+
+  batchBtn.onclick=()=>{ 
+    const s=parseInt(batchStart.value,10), e=parseInt(batchEnd.value,10), ready=batchReady.checked;
     if(isNaN(s)||isNaN(e)||e<s||s<0||e-s>5000) return alert('Enter a valid range (max 5000 cards).');
-    for(let n = s; n <= e; n++) upsertCardToSection(`compacts-H${n}`,`Card ID ${n}`,'compacts', ready?'ready':'empty');
+    const used = getUsedNumbers();
+    const requested = [];
+    for(let n=s;n<=e;n++) requested.push(n);
+    const dups = requested.filter(n => used.has(n));
+    if(dups.length){
+      const next = nextAvailableNumber(s);
+      const preview = dups.slice(0,25).join(', ') + (dups.length>25?' …':'');
+      alert(`Duplicate Card IDs already exist somewhere: ${preview}\nNo cards were added.\nNext available Card ID is ${next}.`);
+      return;
+    }
+    for(let n of requested){
+      upsertCardToSection(`compacts-H${n}`,`Card ID ${n}`,'compacts', ready?'ready':'empty');
+    }
     render();
   };
 
