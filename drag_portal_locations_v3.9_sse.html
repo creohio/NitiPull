@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Production Board — Grid Tiles (SSE)</title>
 <style>
   :root{
     --panel:#ffffff; --muted:#64748b; --text:#0f172a;
     --ring:#94a3b8; --green:#22c55e; --red:#ef4444; --gray:#cbd5e1; --card:#f8fafc;
-    --ink:#0f172a; --ink2:#334155; --ink3:#64748b; --blue:#2563eb;
+    --ink:#0f172a; --blue:#2563eb;
   }
   *{box-sizing:border-box}
   body{ margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
@@ -32,6 +32,7 @@
   .btn{ background:#0f172a; color:#fff; border:none; border-radius:10px; padding:6px 10px; font-size:12px; cursor:pointer }
   .btn.secondary{ background:#e2e8f0; color:#0f172a }
   .btn.danger{ background:#ef4444; color:#fff }
+  .btn.ok{ background:#10b981; color:#fff }
   .btn[disabled]{ opacity:.5; cursor:not-allowed }
 
   /* Global Add Cards bar */
@@ -51,8 +52,6 @@
 
   .sections{ display:flex; flex-direction:column; gap:12px; }
   .section{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
-
-  /* Header bar so titles are always visible */
   .section-header{
     display:flex; align-items:center; justify-content:space-between;
     padding:6px 8px; background:#f8fafc; border:1px solid #e5e7eb;
@@ -95,6 +94,15 @@
   .legend-item{ display:flex; align-items:center; gap:8px; font-size:13px; color:#334155 }
   .legend-swatch{ width:12px; height:12px; border-radius:3px; display:inline-block }
 
+  /* Issues tab */
+  .issues{ display:flex; flex-direction:column; gap:10px; }
+  .issues-header{ display:flex; gap:12px; align-items:center; margin:0 24px }
+  .issues-total{ background:#fff; border:1px solid #e2e8f0; padding:6px 10px; border-radius:10px; font-weight:600 }
+  .issues-table{ display:flex; flex-direction:column; gap:8px; margin:0 24px 8px; }
+  .issues-row{ display:grid; grid-template-columns: 100px 120px 200px 1fr 110px; gap:10px; align-items:center; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:10px; }
+  .issues-row.head{ background:transparent; border:none; font-weight:700; padding:0 10px; }
+  .issue-note{ width:100%; border:1px solid #cbd5e1; border-radius:8px; padding:6px 8px; font-size:14px; background:#fff; }
+
   footer{ text-align:center; padding:16px; color:#64748b; font-size:12px }
 
   /* Marquee selection */
@@ -114,6 +122,7 @@
   <div class="tabs">
     <button class="tab active" data-tab="board">Board</button>
     <button class="tab" data-tab="charts">Charts</button>
+    <button class="tab" data-tab="issues">Issues</button>
     <button id="resetBtn" class="tab">Reset Demo Data</button>
 
     <div class="selbar">
@@ -126,15 +135,15 @@
   <!-- Global Add Cards bar (top center) -->
   <div class="addbar" id="globalAddBar">
     <div class="group">
-      <label>Add Card ID → <strong>AMD / Compacts</strong>:</label>
-      <input id="addOneInput" type="number" placeholder="Card ID" min="0">
+      <label>Add <strong>Card ID</strong> → <strong>AMD / Compacts</strong>:</label>
+      <input id="addOneInput" type="number" placeholder="Card ID #" min="0" />
       <button id="addOneBtn" class="btn">Add</button>
     </div>
     <div class="group">
       <label>Batch:</label>
-      <input id="batchStart" type="number" placeholder="Start" value="1" min="0">
-      <input id="batchEnd" type="number" placeholder="End" value="20" min="0">
-      <label class="checkbox"><input id="batchReady" type="checkbox"><span>Mark Ready</span></label>
+      <input id="batchStart" type="number" placeholder="Start" value="1" min="0" />
+      <input id="batchEnd" type="number" placeholder="End" value="20" min="0" />
+      <label class="checkbox"><input id="batchReady" type="checkbox" /><span>Mark Ready</span></label>
       <button id="batchBtn" class="btn">Add Range</button>
     </div>
   </div>
@@ -144,7 +153,7 @@
       <div id="locations" class="locations"></div>
     </div>
 
-    <!-- CHARTS PANEL (restored) -->
+    <!-- CHARTS PANEL -->
     <div id="panel-charts" class="panel">
       <div class="charts">
         <div class="charts-row center">
@@ -181,7 +190,20 @@
         </div>
       </div>
     </div>
-    <!-- /CHARTS PANEL -->
+
+    <!-- ISSUES PANEL -->
+    <div id="panel-issues" class="panel">
+      <div class="issues">
+        <div class="issues-header">
+          <div class="issues-total">Total Issues: <span id="issuesTotal">0</span></div>
+        </div>
+        <div class="issues-table" id="issuesTable">
+          <div class="issues-row head">
+            <div>Card ID</div><div>Location</div><div>Section</div><div>Issue</div><div></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <footer>© G&amp;S Bar &amp; Wire — Modern Drag Portal</footer>
@@ -193,7 +215,7 @@
   let applyingRemote = false, saveTimer = null;
   function setStatus(text, level){
     document.getElementById('statusText').textContent = text;
-    const dot = document.getElementById('dot'); dot.className = 'dot ' + (level||'bad');
+    document.getElementById('dot').className = 'dot ' + (level||'bad');
   }
   async function saveRemote(){ if(applyingRemote) return; try{ await fetch(BASE+'/patch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state})}); }catch{} }
   function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveRemote,120); }
@@ -220,6 +242,13 @@
     { id:'ferg', title:'Ferguson', sections:[ { id:'ferg136_085', title:'.136" - .085"' } ]},
   ];
 
+  // lookup maps
+  const LOC_TITLES = {}; const SEC_TITLES = {}; const SEC_TO_LOC = {};
+  CONFIG.forEach(loc => {
+    LOC_TITLES[loc.id] = loc.title;
+    loc.sections.forEach(s => { SEC_TITLES[s.id]=s.title; SEC_TO_LOC[s.id]=loc.id; });
+  });
+
   function seed(){
     const cards = {}; for(let i=1;i<=16;i++){
       const sec = i<=4?'compacts':i<=6?'melt':i<=9?'ingotConv':i===10?'billet':i===11?'coilConv':i===12?'blast':i===13?'p250':i===14?'p136hot':'ferg136_085';
@@ -239,9 +268,12 @@
   /* ---------- Selection / Tabs ---------- */
   let selectMode=false; const selection=new Set();
   const tabs=document.querySelectorAll('.tab[data-tab]');
-  const panels={ board:document.getElementById('panel-board'), charts:document.getElementById('panel-charts') };
+  const panels={ board:document.getElementById('panel-board'), charts:document.getElementById('panel-charts'), issues:document.getElementById('panel-issues') };
   tabs.forEach(t=>t.addEventListener('click',()=>{ tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active');
-    const dst=t.dataset.tab; if(dst){ Object.values(panels).forEach(p=>p.classList.remove('active')); panels[dst].classList.add('active'); if(dst==='charts') updateCharts(); } }));
+    const dst=t.dataset.tab; if(dst){ Object.values(panels).forEach(p=>p.classList.remove('active')); panels[dst].classList.add('active');
+      if(dst==='charts') updateCharts();
+      if(dst==='issues') updateIssuesPanel();
+    }}));
 
   document.getElementById('resetBtn').onclick=()=>{ state=seed(); selection.clear(); updateSelectionUI(); render(); saveSoon(); };
 
@@ -255,7 +287,9 @@
     upsertCardToSection(`compacts-H${n}`,`Card ID ${n}`,'compacts','empty'); addOneInput.value=''; render(); };
   batchBtn.onclick=()=>{ const s=parseInt(batchStart.value,10), e=parseInt(batchEnd.value,10), ready=batchReady.checked;
     if(isNaN(s)||isNaN(e)||e<s||s<0||e-s>5000) return alert('Enter a valid range (max 5000 cards).');
-    for(let n=s;n<=e;n++) upsertCardToSection(`compacts-H${n}`,`Card ID ${n}`,'compacts', ready?'ready':'empty'); render(); };
+    for(let n = s; n <= e; n++) upsertCardToSection(`compacts-H${n}`,`Card ID ${n}`,'compacts', ready?'ready':'empty');
+    render();
+  };
 
   const wrap=document.getElementById('locations');
 
@@ -333,10 +367,12 @@
       const lc=wrap.querySelector(`[data-locCount="${loc.id}"]`); if(lc) lc.textContent=String(locTotal);
     });
     applySelectionDecor();
-    if(document.getElementById('panel-charts').classList.contains('active')) updateCharts();
+    if(panels.charts.classList.contains('active')) updateCharts();
+    if(panels.issues.classList.contains('active')) updateIssuesPanel();
   }
 
   function applySelectionDecor(){ document.querySelectorAll('.tile').forEach(t=> t.classList.toggle('selected', selection.has(t.id))); }
+  function toggleSelect(id){ if(selection.has(id)) selection.delete(id); else selection.add(id); updateSelectionUI(); applySelectionDecor(); }
 
   /* Marquee selection */
   let marqueeEl=null, marqueeStart=null, marqueeAppend=false, marqueeSeed=[];
@@ -365,7 +401,6 @@
   const paletteLocations = { AMD:'#2563eb', GS:'#10b981', FERG:'#f59e0b' };
 
   function updateCharts(){
-    // Locations totals
     const locData = CONFIG.map(loc => ({
       key: loc.id,
       title: loc.title,
@@ -377,7 +412,6 @@
       [paletteLocations.AMD, paletteLocations.GS, paletteLocations.FERG],
       'legend-locations'
     );
-    // Per-location section pies
     const amd = CONFIG[0];
     drawPie('chart-amd',
       amd.sections.map(s => s.title),
@@ -437,17 +471,14 @@
       start += angle;
     });
 
-    // donut hole
     ctx.globalCompositeOperation = 'destination-out';
     ctx.beginPath(); ctx.arc(cx, cy, inner, 0, Math.PI*2); ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
 
-    // center total
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 18px ui-sans-serif';
     ctx.fillText(String(total), cx - ctx.measureText(String(total)).width/2, cy + 6);
 
-    // legend
     legend.innerHTML = '';
     labels.forEach((label, i) => {
       const row = document.createElement('div'); row.className='legend-item';
@@ -457,6 +488,58 @@
       const pct = total ? ((v/total)*100).toFixed(1) : '0.0';
       txt.textContent = `${label}: ${v} (${pct}%)`;
       row.append(sw, txt); legend.appendChild(row);
+    });
+  }
+
+  /* ---------- Issues Tab ---------- */
+  function cardToSectionMap(){
+    const m = {};
+    for(const [secId, arr] of Object.entries(state.sections||{})){ (arr||[]).forEach(id => m[id] = secId); }
+    return m;
+  }
+
+  function updateIssuesPanel(){
+    const tbl = document.getElementById('issuesTable');
+    const totalEl = document.getElementById('issuesTotal');
+    if(!tbl || !totalEl) return;
+
+    tbl.querySelectorAll('.issues-row:not(.head)').forEach(n => n.remove());
+
+    const idx = cardToSectionMap();
+    const reds = Object.values(state.cards||{}).filter(c => c && c.status === 'issue');
+
+    totalEl.textContent = String(reds.length);
+
+    reds.sort((a,b)=>{
+      const na = (a.title.match(/(\d+)/) || [0,0])[1];
+      const nb = (b.title.match(/(\d+)/) || [0,0])[1];
+      return (+na) - (+nb);
+    });
+
+    reds.forEach(card => {
+      const sec = idx[card.id];
+      const loc = SEC_TO_LOC[sec];
+      const row = document.createElement('div'); row.className='issues-row';
+      const cid = (card.title.match(/(\d+)/) || card.id.match(/H(\d+)/) || [,''])[1];
+
+      const dCid = document.createElement('div'); dCid.textContent = cid || '';
+      const dLoc  = document.createElement('div'); dLoc.textContent = LOC_TITLES[loc] || '';
+      const dSec  = document.createElement('div'); dSec.textContent = SEC_TITLES[sec] || '';
+
+      const input = document.createElement('input');
+      input.className = 'issue-note';
+      input.placeholder = 'Describe issue...';
+      input.value = card.note || '';
+      input.addEventListener('change', ()=> { state.cards[card.id].note = input.value; saveSoon(); });
+      input.addEventListener('blur', ()=> { state.cards[card.id].note = input.value; saveSoon(); });
+
+      const act = document.createElement('div');
+      const btn = document.createElement('button'); btn.className='btn ok'; btn.textContent='Mark Ready';
+      btn.onclick = ()=> { state.cards[card.id].status = 'ready'; saveSoon(); render(); };
+      act.appendChild(btn);
+
+      row.append(dCid, dLoc, dSec, input, act);
+      tbl.appendChild(row);
     });
   }
 
