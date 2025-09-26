@@ -5,9 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Production Flow Board — Grid Tiles (SSE)</title>
 <style>
-  :root{ --panel:#ffffff; --muted:#64748b; --text:#0f172a; --ring:#94a3b8; --green:#16a34a; --red:#ef4444; --gray:#cbd5e1; --card:#f8fafc; --ink:#0f172a; --blue:#2563eb; }
+  :root{
+    --panel:#ffffff; --muted:#64748b; --text:#0f172a; --ring:#94a3b8;
+    --green:#16a34a; --red:#ef4444; --yellow:#f59e0b; --gray:#cbd5e1;
+    --card:#f8fafc; --ink:#0f172a; --blue:#2563eb;
+  }
   *{box-sizing:border-box}
-  body{ margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#f1f5f9; color:var(--text); }
+  body{ margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#f1f5f9; color:#0f172a; }
   header{ padding:16px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
   .title{ font-size:18px; font-weight:700; display:flex; gap:10px; align-items:center; }
   .status{ display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid #e2e8f0; background:#fff }
@@ -16,7 +20,7 @@
   .muted{ color:#0f172a; font-size:12px; background:#e0f2fe; border:1px solid #bae6fd; padding:6px 8px; border-radius:8px }
 
   .wrap{ padding:0 24px 24px; }
-  .tabs{ display:flex; gap:8px; margin:0 24px 12px; align-items:center; flex-wrap:wrap }
+  .tabs{ display:flex; gap:8px; margin:0 24px 8px; align-items:center; flex-wrap:wrap }
   .tab{ padding:8px 14px; border-radius:10px; border:1px solid #e2e8f0; background:#fff; cursor:pointer; font-size:14px }
   .tab.active{ background:#0f172a; color:#fff; border-color:#0f172a }
   .panel{ display:none } .panel.active{ display:block }
@@ -26,9 +30,18 @@
   .badge-sel{ background:#111827; color:#fff; border-radius:999px; padding:3px 8px; font-size:12px }
   .btn{ background:#0f172a; color:#fff; border:none; border-radius:10px; padding:6px 10px; font-size:12px; cursor:pointer }
   .btn.secondary{ background:#e2e8f0; color:#0f172a }
-  .btn.muted{ background:#6b7280; color:#fff }   /* GREY for Clear Section */
+  .btn.muted{ background:#6b7280; color:#fff }   /* grey Clear Section */
   .btn.ok{ background:#10b981; color:#fff }
   .btn[disabled]{ opacity:.5; cursor:not-allowed }
+
+  /* Color key */
+  .keybar{ display:flex; gap:10px; align-items:center; margin:6px 24px 12px; flex-wrap:wrap }
+  .keyitem{ display:flex; align-items:center; gap:6px; background:#fff; border:1px solid #e2e8f0; padding:6px 10px; border-radius:999px; font-size:12px }
+  .sw{ width:14px; height:14px; border-radius:4px; border:1px solid #475569; background:#fff }
+  .sw.red{ background:#ef4444 }
+  .sw.green{ background:#22c55e }
+  .sw.yellow{ background:#f59e0b }
+  .sw.white{ background:#fff }
 
   /* Global Add Cards bar */
   .addbar{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; margin:8px 24px 12px; }
@@ -47,9 +60,9 @@
 
   .loc-tools{ display:flex; align-items:center; gap:10px; }
   .thresh{ width:80px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; }
-  .loc-ind{ padding:6px 12px; border-radius:999px; font-weight:800; font-size:13px; color:#fff; min-width:72px; text-align:center }
-  .loc-ind.good{ background:var(--green) }
-  .loc-ind.bad{ background:var(--red) }
+  .loc-ind{ padding:6px 12px; border-radius:999px; font-weight:800; font-size:13px; color:#fff; min-width:92px; text-align:center }
+  .loc-ind.good{ background:#16a34a }
+  .loc-ind.bad{ background:#ef4444 }
   .badge{ background:#0f172a; color:#fff; border-radius:999px; padding:2px 8px; font-size:12px }
   .small{ font-size:12px; color:#475569 }
 
@@ -62,11 +75,12 @@
   /* GRID LIST */
   .list{ display:grid; gap:6px; grid-template-columns: repeat(auto-fill, minmax(22px, 1fr)); min-height:28px }
   .tile{ width:22px; height:22px; border-radius:4px; border:1px solid #475569; background:#f8fafc; cursor:grab; user-select:none; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; font-weight:700; line-height:1; font-size:10px; }
-  .tile.ready{ background:#22c55e; }
-  .tile.issue{ background:#ef4444; }
-  .tile.empty{ background:#f8fafc; }
+  .tile.ready{ background:#22c55e; }      /* Green = Stocked */
+  .tile.issue{ background:#ef4444; }      /* Red = Issues */
+  .tile.progress{ background:#facc15; }   /* Yellow = In Progress */
+  .tile.empty{ background:#f8fafc; }      /* White = Unused */
   .tile.dragging{ opacity:.6 } .tile:active{ cursor:grabbing }
-  .tile.selected{ outline:2px solid var(--blue); outline-offset:-1px; box-shadow:0 0 0 2px rgba(37,99,235,.25) inset }
+  .tile.selected{ outline:2px solid #2563eb; outline-offset:-1px; box-shadow:0 0 0 2px rgba(37,99,235,.25) inset }
   .tile .x{ display:none }
   .tile:hover .x{ display:block; position:absolute; right:-6px; top:-6px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; font-size:10px; padding:0 3px; cursor:pointer }
 
@@ -92,6 +106,15 @@
   .issues-row.head{ background:transparent; border:none; font-weight:700; padding:0 10px; }
   .issue-note{ width:100%; border:1px solid #cbd5e1; border-radius:8px; padding:6px 8px; font-size:14px; background:#fff; }
 
+  /* Log tab */
+  .log{ display:flex; flex-direction:column; gap:10px; }
+  .log-header{ display:flex; gap:10px; align-items:center; margin:0 24px }
+  .log-header .btn{ padding:8px 12px }
+  .log-table{ display:flex; flex-direction:column; gap:8px; margin:0 24px 8px; }
+  .log-row{ display:grid; grid-template-columns: 120px 1fr 1fr 90px; gap:10px; align-items:center; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:10px; }
+  .log-row.head{ background:transparent; border:none; font-weight:700; padding:0 10px; }
+  .log-date{ font-weight:600; color:#0f172a; margin:12px 24px 0; }
+
   footer{ text-align:center; padding:16px; color:#64748b; font-size:12px }
 
   /* Marquee selection */
@@ -112,12 +135,21 @@
     <button class="tab active" data-tab="board">Board</button>
     <button class="tab" data-tab="charts">Charts</button>
     <button class="tab" data-tab="issues">Issues</button>
+    <button class="tab" data-tab="log">Log</button>
 
     <div class="selbar">
       <button id="selectModeBtn" class="toggle">Select Mode</button>
       <span class="badge-sel" id="selCount">Selected: 0</span>
       <button id="clearSelBtn" class="btn secondary" disabled>Clear Selection</button>
     </div>
+  </div>
+
+  <!-- Color key -->
+  <div class="keybar">
+    <div class="keyitem"><span class="sw red"></span> Red — Issues</div>
+    <div class="keyitem"><span class="sw green"></span> Green — Stocked</div>
+    <div class="keyitem"><span class="sw yellow"></span> Yellow — In Progress</div>
+    <div class="keyitem"><span class="sw white"></span> White — Unused</div>
   </div>
 
   <!-- Global Add Cards bar -->
@@ -193,6 +225,21 @@
         </div>
       </div>
     </div>
+
+    <div id="panel-log" class="panel">
+      <div class="log">
+        <div class="log-header">
+          <button id="exportCsvBtn" class="btn secondary">Export CSV</button>
+          <div class="small">Daily aggregated moves (From → To)</div>
+        </div>
+        <div class="log-table">
+          <div class="log-row head">
+            <div>Date</div><div>From</div><div>To</div><div>Count</div>
+          </div>
+          <div id="logBody"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <footer>© G&amp;S Bar &amp; Wire — Modern Drag Portal</footer>
@@ -210,18 +257,28 @@
     await fetch(BASE+'/patch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state})});
   }catch{} }
   function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveRemote,120); }
+
   (function connect(){
-    const es = new EventSource(BASE+'/events'); setStatus('Connecting…','warn');
-    es.onmessage = ev => { try{
-      const m=JSON.parse(ev.data||'{}');
-      if(m && (m.type==='hello'||m.type==='patch') && m.state){
-        applyingRemote=true; state=m.state; render(); applyingRemote=false; setStatus('Connected','ok');
+    try{
+      if (location.protocol.startsWith('http')) {
+        const es = new EventSource(BASE+'/events');
+        setStatus('Connecting…','warn');
+        es.onmessage = ev => { try{
+          const m=JSON.parse(ev.data||'{}');
+          if(m && (m.type==='hello'||m.type==='patch') && m.state){
+            applyingRemote=true; state=m.state; render(); applyingRemote=false; setStatus('Connected','ok');
+          }
+        }catch{} };
+        es.onerror = ()=> setStatus('Offline','bad');
+      } else {
+        setStatus('Offline','bad');
       }
-    }catch{} };
-    es.onerror = ()=> setStatus('Offline','bad');
+    }catch(e){
+      setStatus('Offline','bad');
+    }
   })();
 
-  /* ---------- Config (UPDATED sections) ---------- */
+  /* ---------- Config ---------- */
   const CONFIG = [
     { id:'amd', title:'AMD', sections:[
       { id:'amdUnused', title:'Unused' },
@@ -234,19 +291,19 @@
       { id:'gsUnused', title:'Unused' },
       { id:'coilConv',  title:'Coil Conversion' },
       { id:'blast',     title:'Shot Blast/Test' },
-      { id:'p250HrcN15',  title:'.250" HRC N15' },
-      { id:'p250HrcN25',  title:'.250" HRC N25' },
-      { id:'p250AnnN15',  title:'.250" Annealed N15' },
-      { id:'p250AnnN25',  title:'.250" Annealed N25' },
-      { id:'p136HotN15',  title:'.136" Hot Drawn N15' },
-      { id:'p136HotN25',  title:'.136" Hot Drawn N25' }
+      { id:'p250HrcN15',  title:'.250\" HRC N15' },
+      { id:'p250HrcN25',  title:'.250\" HRC N25' },
+      { id:'p250AnnN15',  title:'.250\" Annealed N15' },
+      { id:'p250AnnN25',  title:'.250\" Annealed N25' },
+      { id:'p136HotN15',  title:'.136\" Hot Drawn N15' },
+      { id:'p136HotN25',  title:'.136\" Hot Drawn N25' }
     ]},
     { id:'ferg', title:'Ferguson', sections:[
       { id:'fergUnused',     title:'Unused' },
-      { id:'ferg240AnnN15',  title:'.240" Annealed N15' },
-      { id:'ferg240AnnN25',  title:'.240" Annealed N25' },
-      { id:'ferg136HotN15',  title:'.136" Hot Draw N15' },
-      { id:'ferg136HotN25',  title:'.136" Hot Draw N25' }
+      { id:'ferg240AnnN15',  title:'.240\" Annealed N15' },
+      { id:'ferg240AnnN25',  title:'.240\" Annealed N25' },
+      { id:'ferg136HotN15',  title:'.136\" Hot Draw N15' },
+      { id:'ferg136HotN25',  title:'.136\" Hot Draw N25' }
     ]},
   ];
 
@@ -266,12 +323,12 @@
     // Seed some sample cards
     sections.compacts.push(add('compacts',1,'ready'),add('compacts',2,'ready'),add('compacts',3,'ready'),add('compacts',4,'ready'));
     sections.melt.push(add('melt',5,'empty'),add('melt',6,'issue'));
-    sections.ingotConv.push(add('ingotConv',7,'ready'),add('ingotConv',8,'issue'),add('ingotConv',9,'ready'));
+    sections.ingotConv.push(add('ingotConv',7,'ready'),add('ingotConv',8,'issue'),add('ingotConv',9,'progress'));
     sections.billet.push(add('billet',10,'ready'));
 
     sections.coilConv.push(add('coilConv',11,'ready'));
     sections.blast.push(add('blast',12,'issue'));
-    sections.p250HrcN15.push(add('p250HrcN15',13,'ready'));
+    sections.p250HrcN15.push(add('p250HrcN15',13,'progress'));
     sections.p136HotN15.push(add('p136HotN15',14,'ready'));
 
     sections.ferg136HotN15.push(add('ferg136HotN15',15,'issue'));
@@ -283,18 +340,22 @@
     /* Location targets default to 0 */
     const thresholds = { amd:0, gs:0, ferg:0 };
 
-    return { cards, sections, thresholds };
+    /* Moves log */
+    const moves = {};
+
+    return { cards, sections, thresholds, moves };
   }
   let state = seed();
 
   /* ---------- Selection / Tabs ---------- */
   let selectMode=false; const selection=new Set();
   const tabs=document.querySelectorAll('.tab[data-tab]');
-  const panels={ board:document.getElementById('panel-board'), charts:document.getElementById('panel-charts'), issues:document.getElementById('panel-issues') };
+  const panels={ board:document.getElementById('panel-board'), charts:document.getElementById('panel-charts'), issues:document.getElementById('panel-issues'), log:document.getElementById('panel-log') };
   tabs.forEach(t=>t.addEventListener('click',()=>{ tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active');
     const dst=t.dataset.tab; if(dst){ Object.values(panels).forEach(p=>p.classList.remove('active')); panels[dst].classList.add('active');
       if(dst==='charts') updateCharts();
       if(dst==='issues') updateIssuesPanel();
+      if(dst==='log') updateLogPanel();
     }}));
 
   const selectBtn=document.getElementById('selectModeBtn'), selCount=document.getElementById('selCount'), clearSelBtn=document.getElementById('clearSelBtn');
@@ -302,7 +363,7 @@
   clearSelBtn.onclick=()=>{ selection.clear(); updateSelectionUI(); applySelectionDecor(); };
   function updateSelectionUI(){ selCount.textContent='Selected: '+selection.size; clearSelBtn.disabled=selection.size===0; selectBtn.classList.toggle('on',selectMode); }
 
-  /* ---------- Add Cards (global) → selected section ---------- */
+  /* ---------- Add Cards ---------- */
   const addLocSel = document.getElementById('addLocSel');
   const addSecSel = document.getElementById('addSecSel');
   const addOneBtn = document.getElementById('addOneBtn');
@@ -369,13 +430,10 @@
 
     const header=document.createElement('div'); header.className='loc-header';
 
-    const left=document.createElement('div');
-    left.className='loc-title';
-    left.textContent=loc.title;
+    const left=document.createElement('div'); left.className='loc-title'; left.textContent=loc.title;
 
     const tools=document.createElement('div'); tools.className='loc-tools';
 
-    /* Target input */
     const lbl=document.createElement('span'); lbl.className='small'; lbl.textContent='Target';
     const input=document.createElement('input'); input.type='number'; input.min='0'; input.className='thresh';
     input.value = (state.thresholds && Number.isFinite(state.thresholds[loc.id])) ? state.thresholds[loc.id] : 0;
@@ -387,7 +445,6 @@
       saveSoon(); render();
     };
 
-    /* BIG indicator and total */
     const ind=document.createElement('span'); ind.className='loc-ind'; ind.dataset.locInd=loc.id; ind.title='Target status';
     const total=document.createElement('div'); total.className='badge'; total.dataset.locCount=loc.id; total.textContent='0';
 
@@ -431,7 +488,11 @@
     if(selection.has(card.id)) el.classList.add('selected');
     el.addEventListener('dragstart',e=>{ el.classList.add('dragging'); const group=selection.has(card.id)?Array.from(selection):[card.id]; window.__dragGroup=group; e.dataTransfer.setData('text/plain',card.id); e.dataTransfer.effectAllowed='move'; });
     el.addEventListener('dragend',()=> el.classList.remove('dragging'));
-    el.addEventListener('click',e=>{ if(selectMode||e.ctrlKey||e.metaKey){ toggleSelect(card.id); } else { const order=['ready','issue','empty']; const cur=state.cards[card.id].status||'empty'; state.cards[card.id].status=order[(order.indexOf(cur)+1)%order.length]; saveSoon(); render(); }});
+    el.addEventListener('click',e=>{ if(selectMode||e.ctrlKey||e.metaKey){ toggleSelect(card.id); } else { 
+      const order=['ready','issue','progress','empty']; 
+      const cur=state.cards[card.id].status||'empty'; 
+      state.cards[card.id].status=order[(order.indexOf(cur)+1)%order.length]; 
+      saveSoon(); render(); }});
     const x=document.createElement('div'); x.textContent='×'; x.className='x'; x.onclick=e=>{ e.stopPropagation(); deleteCard(card.id) }; el.appendChild(x);
     return el;
   }
@@ -443,7 +504,29 @@
   }
   function setSectionStatus(sectionId,status){ (state.sections[sectionId]||[]).forEach(id=>{ if(state.cards[id]) state.cards[id].status=status; }); saveSoon(); render(); }
   function clearSection(sectionId){ const ids=state.sections[sectionId]||[]; if(!ids.length||!confirm('Delete all cards in this section?')) return; ids.forEach(id=> delete state.cards[id]); state.sections[sectionId]=[]; saveSoon(); render(); }
-  function moveGroup(ids,dst){ Object.keys(state.sections).forEach(k=>{ state.sections[k]=(state.sections[k]||[]).filter(id=>!ids.includes(id)); }); (state.sections[dst] ||= []).push(...ids); selection.clear(); saveSoon(); render(); }
+
+  /* Move group + log */
+  function moveGroup(ids,dst){ 
+    const prevById={};
+    for(const [secId, arr] of Object.entries(state.sections)){ for(const cid of arr){ if(ids.includes(cid)) prevById[cid]=secId; } }
+    Object.keys(state.sections).forEach(k=>{ state.sections[k]=(state.sections[k]||[]).filter(id=>!ids.includes(id)); });
+    (state.sections[dst] ||= []).push(...ids); 
+
+    const today = new Date();
+    const day = today.toISOString().slice(0,10);
+    state.moves = state.moves || {};
+    state.moves[day] = state.moves[day] || {};
+    for(const cid of ids){
+      const from = prevById[cid];
+      if(from && from !== dst){
+        const key = from + '|' + dst;
+        state.moves[day][key] = (state.moves[day][key] || 0) + 1;
+      }
+    }
+
+    selection.clear(); saveSoon(); render(); 
+  }
+
   function deleteCard(id){ Object.keys(state.sections).forEach(k=>{ state.sections[k]=(state.sections[k]||[]).filter(x=>x!==id); }); delete state.cards[id]; selection.delete(id); saveSoon(); render(); }
 
   function render(){
@@ -452,7 +535,6 @@
     CONFIG.forEach(loc=>{
       let locTotal=0;
 
-      // Ensure target input reflects state (in case of remote patch)
       const tInput = wrap.querySelector(`[data-loc-thresh="${loc.id}"]`);
       if(tInput && state.thresholds && Number.isFinite(state.thresholds[loc.id])) {
         tInput.value = state.thresholds[loc.id];
@@ -464,7 +546,7 @@
         const c=wrap.querySelector(`[data-sec-count="${sec.id}"]`);
         const cnt=(state.sections[sec.id]||[]).length;
         if(c) c.textContent=String(cnt);
-        locTotal+=cnt;
+        if(!/Unused$/i.test(sec.id) && sec.title !== 'Unused') locTotal+=cnt;
       });
 
       const lc=wrap.querySelector(`[data-loc-count="${loc.id}"]`);
@@ -477,13 +559,14 @@
         const ok = locTotal >= threshold;
         ind.classList.add(ok?'good':'bad');
         ind.textContent = ok ? 'OK' : 'Below';
-        ind.title = `Total ${locTotal} vs target ${threshold}`;
+        ind.title = `Total (excl. Unused) ${locTotal} vs target ${threshold}`;
       }
     });
 
     applySelectionDecor();
     if(document.getElementById('panel-charts').classList.contains('active')) updateCharts();
     if(document.getElementById('panel-issues').classList.contains('active')) updateIssuesPanel();
+    if(document.getElementById('panel-log').classList.contains('active')) updateLogPanel();
   }
 
   function applySelectionDecor(){ document.querySelectorAll('.tile').forEach(t=> t.classList.toggle('selected', selection.has(t.id))); }
@@ -655,6 +738,44 @@
 
       row.append(dCid, dLoc, dSec, input, act);
       tbl.appendChild(row);
+    });
+  }
+
+  /* ---------- Log Tab ---------- */
+  function computeLogRows(){
+    const rows = [];
+    const days = Object.keys(state.moves||{}).sort();
+    for(const day of days){
+      const pairs = state.moves[day];
+      for(const key in pairs){
+        const [from, to] = key.split('|');
+        const cnt = pairs[key];
+        const fromTxt = (SEC_TITLES[from]||from) + ' (' + (LOC_TITLES[SEC_TO_LOC[from]]||'') + ')';
+        const toTxt   = (SEC_TITLES[to]||to)   + ' (' + (LOC_TITLES[SEC_TO_LOC[to]]||'') + ')';
+        rows.push({date:day, from, to, fromTxt, toTxt, count:cnt});
+      }
+    }
+    rows.sort((a,b)=> (a.date.localeCompare(b.date)) || a.fromTxt.localeCompare(b.fromTxt) || a.toTxt.localeCompare(b.toTxt) );
+    return rows;
+  }
+
+  function updateLogPanel(){
+    const body = document.getElementById('logBody');
+    if(!body) return;
+    body.innerHTML = '';
+    const rows = computeLogRows();
+    if(rows.length===0){
+      const empty = document.createElement('div');
+      empty.className='small';
+      empty.style.margin='0 24px';
+      empty.textContent = 'No moves yet.';
+      body.appendChild(empty);
+      return;
+    }
+    rows.forEach(r => {
+      const row = document.createElement('div'); row.className='log-row';
+      row.innerHTML = `<div>${r.date}</div><div>${r.fromTxt}</div><div>${r.toTxt}</div><div>${r.count}</div>`;
+      body.appendChild(row);
     });
   }
 
