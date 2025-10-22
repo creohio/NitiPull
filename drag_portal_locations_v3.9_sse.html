@@ -53,7 +53,8 @@
   .group .checkbox{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#334155 }
 
   .locations{ display:grid; gap:16px; grid-template-columns: 1fr; }
-  @media (min-width: 1100px){ .locations{ grid-template-columns: repeat(3,1fr); } }
+  @media (min-width: 1100px){
+  .locations{ grid-template-columns: repeat(4,1fr); }}
   .location{ background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:12px; }
   .loc-header{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   .loc-title{ font-weight:700; font-size:16px }
@@ -299,12 +300,19 @@
       { id:'p136HotN25',  title:'.136\" Hot Drawn N25' }
     ]},
     { id:'ferg', title:'Ferguson', sections:[
-      { id:'fergUnused',     title:'Unused' },
+      { id:'fergUnused',     title:'Unused N15' },
+      { id:'fergUnused',     title:'Unused N25' },
       { id:'ferg240AnnN15',  title:'.240\" Annealed N15' },
       { id:'ferg240AnnN25',  title:'.240\" Annealed N25' },
-      { id:'ferg136HotN15',  title:'.136\" Hot Draw N15' },
-      { id:'ferg136HotN25',  title:'.136\" Hot Draw N25' }
+      { id:'ferg136HotN15',  title:'.108\" Hot Draw N15' },
+      { id:'ferg136HotN25',  title:'.108\" Hot Draw N25' }
     ]},
+    { id:'aba', title:'ABA', sections:[
+  { id:'aba085N15', title:'Unused N15' },
+  { id:'aba085N25', title:'Unused N25' },
+  { id:'abaUnusedN15', title:'.085" N15' },
+  { id:'abaUnusedN25', title:'.085" N25' }
+]},
   ];
 
   const LOC_TITLES = {}; const SEC_TITLES = {}; const SEC_TO_LOC = {};
