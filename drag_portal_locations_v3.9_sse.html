@@ -151,6 +151,9 @@
     <div class="keyitem"><span class="sw green"></span> Green — Stocked</div>
     <div class="keyitem"><span class="sw yellow"></span> Yellow — In Progress</div>
     <div class="keyitem"><span class="sw white"></span> White — Unused</div>
+    <button id="exportSnapshotBtn" class="btn secondary">Download Snapshot CSV</button>
+    <a class="btn" href="https://saes-nitipull.onrender.com/saes_portal_locations_v1.html"> Open SAES Board </a>
+
   </div>
 
   <!-- Global Add Cards bar -->
@@ -788,6 +791,32 @@
       body.appendChild(row);
     });
   }
+  /* Snapshot CSV (sections, locations, counts, IDs) */
+  function exportSnapshotCSV(){
+    const rows = [['Location','Section','Count','CardIDs']];
+    CONFIG.forEach(loc=>{
+      loc.sections.forEach(sec=>{
+        const ids = state.sections[sec.id] || [];
+        const count = ids.length;
+        const cardList = ids.map(id => (id.match(/H(\d+)/)||[])[1] || id).join(' ');
+        rows.push([loc.title, sec.title, String(count), cardList]);
+      });
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `snapshot_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+  document.getElementById('exportSnapshotBtn')?.addEventListener('click', exportSnapshotCSV);
+
+  /* Init */
+  populateAddSelectors();
+  render();
+})();
+</script>
 
   /* Init */
   populateAddSelectors();
