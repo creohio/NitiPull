@@ -554,7 +554,9 @@
         const c=wrap.querySelector(`[data-sec-count="${sec.id}"]`);
         const cnt=(state.sections[sec.id]||[]).length;
         if(c) c.textContent=String(cnt);
-        if(!/Unused$/i.test(sec.id) && sec.title !== 'Unused') locTotal+=cnt;
+        const isUnused = /Unused$/i.test(sec.id) || /^Unused\b/i.test(sec.title);
+        if(!isUnused) locTotal+=cnt;
+
       });
 
       const lc=wrap.querySelector(`[data-loc-count="${loc.id}"]`);
