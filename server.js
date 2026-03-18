@@ -38,17 +38,14 @@ function sendFile(res, filePath, contentType){
 
 function serveStatic(req, res){
   let p = url.parse(req.url).pathname;
+  if(p === '/') p = '/drag_portal_locations_v3.9_sse.html';
+  const filePath = path.join(__dirname, p);
+  const ext = path.extname(filePath).toLowerCase();
+  const types = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8' };
+  const type = types[ext] || 'application/octet-stream';
+  sendFile(res, filePath, type);
+}
 
-  if (p === '/portal') {
-    p = '/drag_portal_locations_v3.9_sse.html';
-  }
-  else if (p === '/split') {
-    p = '/Split_coil.html';
-  }
-  else {
-    res.writeHead(404);
-    return res.end('Not found');
-  }
 
   const filePath = path.join(__dirname, decodeURIComponent(p));
   const ext = path.extname(filePath).toLowerCase();
