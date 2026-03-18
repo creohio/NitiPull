@@ -46,19 +46,6 @@ function serveStatic(req, res){
   sendFile(res, filePath, type);
 }
 
-
-  const filePath = path.join(__dirname, decodeURIComponent(p));
-  const ext = path.extname(filePath).toLowerCase();
-  const types = {
-    '.html':'text/html; charset=utf-8',
-    '.js':'text/javascript; charset=utf-8',
-    '.css':'text/css; charset=utf-8'
-  };
-  const type = types[ext] || 'application/octet-stream';
-  sendFile(res, filePath, type);
-}
-
-
 const server = http.createServer((req, res) => {
   const parsed = url.parse(req.url, true);
 
