@@ -38,29 +38,14 @@ function sendFile(res, filePath, contentType){
 
 function serveStatic(req, res){
   let p = url.parse(req.url).pathname;
-
-  if (p === '/split') {
-    p = '/Split coil.html';
-  }
-  else if (p === '/portal') {
-    p = '/drag_portal_locations_v3.9_sse.html';
-  }
-  else {
-    return notFound(res);
-  }
-
-  const filePath = path.join(__dirname, decodeURIComponent(p));
+  if(p === '/') p = '/drag_portal_locations_v3.9_sse.html';
+  const filePath = path.join(__dirname, p);
   const ext = path.extname(filePath).toLowerCase();
-
-  const types = {
-    '.html':'text/html; charset=utf-8',
-    '.js':'text/javascript; charset=utf-8',
-    '.css':'text/css; charset=utf-8'
-  };
-
+  const types = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8' };
   const type = types[ext] || 'application/octet-stream';
   sendFile(res, filePath, type);
 }
+
 
 const server = http.createServer((req, res) => {
   const parsed = url.parse(req.url, true);
