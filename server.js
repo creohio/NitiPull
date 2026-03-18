@@ -43,7 +43,7 @@ function serveStatic(req, res){
     p = '/drag_portal_locations_v3.9_sse.html';
   }
   else if (p === '/split') {
-    p = '/Split coil.html';
+    p = '/Split_coil.html';
   }
   else {
     res.writeHead(404);
